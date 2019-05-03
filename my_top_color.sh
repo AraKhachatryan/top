@@ -35,8 +35,8 @@ function my_ps_color
             starttime=${stat_array[21]}
 
             total_time=$(( $utime + $stime ))
-            #Waited-for children's CPU time spent in user and kernel code
-#           total_time=$(( $total_time + $cutime + $cstime ))
+            #add $cstime - CPU time spent in user and kernel code ( can olso add $cutime - CPU time spent in user code )
+            total_time=$(( $total_time + $cstime ))
             seconds=$( awk 'BEGIN {print ( '$uptime' - ('$starttime' / '$clock_ticks') )}' )
             cpu_usage=$( awk 'BEGIN {print ( 100 * (('$total_time' / '$clock_ticks') / '$seconds') )}' )
 
@@ -50,8 +50,15 @@ function my_ps_color
     done
 
     clear
-    printf "\e[30;107m%-6s %-6s %-10s %-4s %-3s %-6s %-4s %-7s %-7s %-18s\e[0m\n" "PID" "PPID" "USER" "PR" "NI" "STATE" "THR" "%MEM" "%CPU" "COMMAND"
+    printf "\e[30;106m%-6s %-6s %-10s %-4s %-3s %-6s %-4s %-7s %-7s %-18s\e[0m\n" "PID" "PPID" "USER" "PR" "NI" "STATE" "THR" "%MEM" "%CPU" "COMMAND"
+    print_pid_info_line $1 .data.ps
+    read_options
 
+}
+
+
+function print_pid_info_line
+{
     while IFS=';' read -r f1 f2 f3 f4 f5 f6 f7 f8 f9 f10
     do
         printf "%-6d %-6d %-10s %-4d %-5d " $f1 $f2 $f3 $f4 $f5
@@ -79,10 +86,10 @@ function my_ps_color
 #            printf "\e[1;31m%-7.2f\e[0m " $f8
 #        fi
 
-        if (( $(awk 'BEGIN {print ('$f8'< 0.5)}') )) #$(echo "$f8 < 0.5" |bc -l)
+        if (( $(awk 'BEGIN {print ('$f9'< 0.5)}') ))
         then
             printf "%-7.2f " $f9
-        elif (( $(awk 'BEGIN {print ('$f8'< 5)}') )) #$(echo "$f8 < 5.0" |bc -l)
+        elif (( $(awk 'BEGIN {print ('$f9'< 5)}') ))
         then
             printf "\e[1;33m%-7.2f\e[0m " $f9
         else
@@ -90,14 +97,46 @@ function my_ps_color
         fi
 
         printf "%-18s\n" $f10
-    done < <(sort -t";" -nr -k9 .data.ps | head -$1)
+    done < <(sort -t";" -nr -k9 $2 | head -$1)
+}
+
+
+function read_options
+{
+    read -N 1 -t 0.001 option
+    case "$option" in
+        k)
+            printf "PID to kill (menak zguysh!) "
+            read pid
+            kill -9 $pid
+            ;;
+        r)
+            printf "PID to renice "
+            read pid
+            printf "Renice PID 16417 to value "
+            read nice
+            renice -n  $nice  -p $pid
+            ;;
+        q)
+            clear
+            exit 0
+            ;;
+        +)
+            printf "Unknown command: type k, r, h or q\n"
+    esac
+
+    if [ -z "$option" ]
+    then
+        printf "\e[30;106m%-15s%-15s%-49s\e[0m\n" "k - Kill " "r - renice " "q - quit"
+    fi
+
 }
 
 while true
 do
 
     terminal_height=$(tput lines)
-    lines=$( awk 'BEGIN {print ( '$terminal_height' - 2 )}' )
+    lines=$(( $terminal_height - 3 ))
     my_ps_color $lines
 #    break
 #    sleep 0.7

@@ -61,7 +61,7 @@ function read_options
     read -N 1 -t 0.001 option
     case "$option" in
         k)
-            printf "PID to signal/kill menak zguysh:) "
+            printf "PID to kill (menak zguysh!) "
             read pid
             kill -9 $pid
             ;;
@@ -73,6 +73,7 @@ function read_options
             renice -n  $nice  -p $pid
             ;;
         q)
+            clear
             exit 0
             ;;
         +)
@@ -81,7 +82,7 @@ function read_options
 
     if [ -z "$option" ]
     then
-        printf "\e[30;107m%-15s%-15s%-49s\e[0m\n" "K - Kill " "r - renice " "q - quit"
+        printf "\e[30;107m%-15s%-15s%-49s\e[0m\n" "k - Kill " "r - renice " "q - quit"
     fi
 
 }

@@ -16,7 +16,9 @@ function my_ps_color
             uptime_array=( `cat /proc/uptime` )
             statm_array=( `cat /proc/$pid/statm` )
             comm=$( cut -f1 -d'/' /proc/$pid/comm )
+            user_id=$( grep -Po '(?<=Uid:\s)(\d+)' /proc/$pid/status )
 
+            user=$( id -nu $user_id )
             uptime=${uptime_array[0]}
 
             state=${stat_array[2]}
@@ -42,53 +44,53 @@ function my_ps_color
             data_and_stack=${statm_array[5]}
             memory_usage=$( awk 'BEGIN {print( (('$resident' + '$data_and_stack' ) * 100) / '$total_memory'  )}' )
 
-            printf "%d;%d;%d;%-d;%s;%s;%.2f;%.2f;%s\n" $pid $ppid $priority $nice $state $num_threads $memory_usage $cpu_usage $comm >> .data.ps
+            printf "%d;%d;%s;%d;%-d;%s;%s;%.2f;%.2f;%s\n" $pid $ppid $user $priority $nice $state $num_threads $memory_usage $cpu_usage $comm >> .data.ps
 
         fi
     done
 
     clear
-    printf "\e[30;107m%-6s %-6s %-4s %-3s %-6s %-4s %-7s %-7s %-25s\e[0m\n" "PID" "PPID" "PR" "NI" "STATE" "THR" "%MEM" "%CPU" "COMMAND"
+    printf "\e[30;107m%-6s %-6s %-10s %-4s %-3s %-6s %-4s %-7s %-7s %-18s\e[0m\n" "PID" "PPID" "USER" "PR" "NI" "STATE" "THR" "%MEM" "%CPU" "COMMAND"
 
-    while IFS=';' read -r f1 f2 f3 f4 f5 f6 f7 f8 f9
+    while IFS=';' read -r f1 f2 f3 f4 f5 f6 f7 f8 f9 f10
     do
-        printf "%-6d %-6d %-4d %-4d " $f1 $f2 $f3 $f4
+        printf "%-6d %-6d %-10s %-4d %-5d " $f1 $f2 $f3 $f4 $f5
 
-        if [ $f5 == "S" ]
+        if [ $f6 == "S" ]
         then
-            printf "%-5s " $f5
-        elif [ $f5 == "R" ]
+            printf "%-4s " $f6
+        elif [ $f6 == "R" ]
         then
-            printf "\e[1;32m%-5s\e[0m " $f5
+            printf "\e[1;32m%-4s\e[0m " $f6
         else
-            printf "\e[1;31m%-5s\e[0m " $f5
+            printf "\e[1;31m%-4s\e[0m " $f6
         fi
 
-        printf "%-4u " $f6
+        printf "%-4u " $f7
 
-        printf "%-7.2f " $f7
-#        if (( $(awk 'BEGIN {print ('$f7'< 3)}') )) #$(echo "$f8 < 0.5" |bc -l)
+        printf "%-7.2f " $f8
+#        if (( $(awk 'BEGIN {print ('$f8'< 3)}') )) #$(echo "$f8 < 0.5" |bc -l)
 #        then
-#            printf "%-7.2f " $f7
-#        elif (( $(awk 'BEGIN {print ('$f7'< 6)}') )) #$(echo "$f8 < 5.0" |bc -l)
+#            printf "%-7.2f " $f8
+#        elif (( $(awk 'BEGIN {print ('$f8'< 6)}') )) #$(echo "$f8 < 5.0" |bc -l)
 #        then
-#            printf "\e[1;33m%-7.2f\e[0m " $f7
+#            printf "\e[1;33m%-7.2f\e[0m " $f8
 #        else
-#            printf "\e[1;31m%-7.2f\e[0m " $f7
+#            printf "\e[1;31m%-7.2f\e[0m " $f8
 #        fi
 
         if (( $(awk 'BEGIN {print ('$f8'< 0.5)}') )) #$(echo "$f8 < 0.5" |bc -l)
         then
-            printf "%-7.2f " $f8
+            printf "%-7.2f " $f9
         elif (( $(awk 'BEGIN {print ('$f8'< 5)}') )) #$(echo "$f8 < 5.0" |bc -l)
         then
-            printf "\e[1;33m%-7.2f\e[0m " $f8
+            printf "\e[1;33m%-7.2f\e[0m " $f9
         else
-            printf "\e[1;31m%-7.2f\e[0m " $f8
+            printf "\e[1;31m%-7.2f\e[0m " $f9
         fi
 
-        printf "%-25s\n" $f9
-    done < <(sort -t";" -nr -k8 .data.ps | head -$1)
+        printf "%-18s\n" $f10
+    done < <(sort -t";" -nr -k9 .data.ps | head -$1)
 }
 
 while true

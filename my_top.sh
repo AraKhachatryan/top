@@ -16,7 +16,9 @@ function my_ps
             uptime_array=( `cat /proc/uptime` )
             statm_array=( `cat /proc/$pid/statm` )
             comm=$( cut -f1 -d'/' /proc/$pid/comm )
+            user_id=$( grep -Po '(?<=Uid:\s)(\d+)' /proc/$pid/status )
 
+            user=$( id -nu $user_id )
             uptime=${uptime_array[0]}
 
             state=${stat_array[2]}
@@ -44,13 +46,13 @@ function my_ps
             data_and_stack=${statm_array[5]}
             memory_usage=$( awk 'BEGIN {print( (('$resident' + '$data_and_stack' ) * 100) / '$total_memory'  )}' )
 
-            printf "%-6d %-6d %-4d %-4d %-5s %-4u %-7.2f %-7.2f %-25s\n" $pid $ppid $priority $nice $state $num_threads $memory_usage $cpu_usage $comm >> .data.ps
+            printf "%-6d %-6d %-10s %-4d %-5d %-4s %-4u %-7.2f %-7.2f %-18s\n" $pid $ppid $user $priority $nice $state $num_threads $memory_usage $cpu_usage $comm >> .data.ps
 
         fi
     done
 
     clear
-    printf "\e[30;107m%-6s %-6s %-4s %-3s %-6s %-4s %-7s %-7s %-25s\e[0m\n" "PID" "PPID" "PR" "NI" "STATE" "THR" "%MEM" "%CPU" "COMMAND"
+    printf "\e[30;107m%-6s %-6s %-10s %-4s %-3s %-6s %-4s %-7s %-7s %-18s\e[0m\n" "PID" "PPID" "USER" "PR" "NI" "STATE" "THR" "%MEM" "%CPU" "COMMAND"
     sort -nr -k8 .data.ps | head -$1
 }
 

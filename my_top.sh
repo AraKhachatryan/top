@@ -35,12 +35,10 @@ function my_ps
             starttime=${stat_array[21]}
 
             total_time=$(( $utime + $stime ))
-            #Waited-for children's CPU time spent in user and kernel code
-#            total_time=$(( $total_time + $cutime + $cstime ))
+            #add $cstime - CPU time spent in user and kernel code ( can olso add $cutime - CPU time spent in user code )
+            total_time=$(( $total_time + $cstime ))
             seconds=$( awk 'BEGIN {print ( '$uptime' - ('$starttime' / '$clock_ticks') )}' )
-#            seconds=$(bc <<< "scale=4; $uptime - ($starttime / $clock_ticks) ")
             cpu_usage=$( awk 'BEGIN {print ( 100 * (('$total_time' / '$clock_ticks') / '$seconds') )}' )
-#            cpu_usage=$(bc <<< "scale=4; 100 * (($total_time / $clock_ticks) / $seconds) ")
 
             resident=${statm_array[1]}
             data_and_stack=${statm_array[5]}
@@ -53,14 +51,47 @@ function my_ps
 
     clear
     printf "\e[30;107m%-6s %-6s %-10s %-4s %-3s %-6s %-4s %-7s %-7s %-18s\e[0m\n" "PID" "PPID" "USER" "PR" "NI" "STATE" "THR" "%MEM" "%CPU" "COMMAND"
-    sort -nr -k8 .data.ps | head -$1
+    sort -nr -k9 .data.ps | head -$1
+    read_options
 }
+
+
+function read_options
+{
+    read -N 1 -t 0.001 option
+    case "$option" in
+        k)
+            printf "PID to signal/kill menak zguysh:) "
+            read pid
+            kill -9 $pid
+            ;;
+        r)
+            printf "PID to renice "
+            read pid
+            printf "Renice PID 16417 to value "
+            read nice
+            renice -n  $nice  -p $pid
+            ;;
+        q)
+            exit 0
+            ;;
+        +)
+            printf "Unknown command: type k, r, h or q\n"
+    esac
+
+    if [ -z "$option" ]
+    then
+        printf "\e[30;107m%-15s%-15s%-49s\e[0m\n" "K - Kill " "r - renice " "q - quit"
+    fi
+
+}
+
 
 while true
 do
 
     terminal_height=$(tput lines)
-    lines=$( awk 'BEGIN {print ( '$terminal_height' - 2 )}' )
+    lines=$(( $terminal_height - 3 ))
     my_ps $lines
 #    break
 #    sleep 0.7

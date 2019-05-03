@@ -63,14 +63,20 @@ function print_pid_info_line
     do
         printf "%-6d %-6d %-10s %-4d %-5d " $f1 $f2 $f3 $f4 $f5
 
-        if [ $f6 == "S" ]
+        if [ $f6 == "S" ]    # S  Sleeping in an interruptible wait
         then
             printf "%-4s " $f6
-        elif [ $f6 == "R" ]
+        elif [ $f6 == "R" ]  # R  Running
         then
             printf "\e[1;32m%-4s\e[0m " $f6
-        else
+        elif [ $f6 == "D" ]  # D  Waiting in uninterruptible disk sleep
+        then
+            printf "\e[38;5;27m%-4s\e[0m " $f6
+        elif [ $f6 == "Z" ]  # Z  Zombie
+        then
             printf "\e[1;31m%-4s\e[0m " $f6
+        else
+            printf "\e[38;5;207m%-4s\e[0m " $f6
         fi
 
         printf "%-4u " $f7

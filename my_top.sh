@@ -12,10 +12,10 @@ function my_ps
     do
         if [ -r /proc/$pid/stat ]
         then
-            stat_array=( `cat /proc/$pid/stat` )
+            stat_array=( `sed -E 's/(\([^\s)]+)\s([^)]+\))/\1_\2/g' /proc/$pid/stat` )
             uptime_array=( `cat /proc/uptime` )
             statm_array=( `cat /proc/$pid/statm` )
-            comm=$( cut -f1 -d'/' /proc/$pid/comm )
+            comm=( `grep -Po '^[^\s\/]+' /proc/$pid/comm` )
             user_id=$( grep -Po '(?<=Uid:\s)(\d+)' /proc/$pid/status )
 
             user=$( id -nu $user_id )
@@ -23,7 +23,6 @@ function my_ps
 
             state=${stat_array[2]}
             ppid=${stat_array[3]}
-            tty_nr=${stat_array[6]}
             priority=${stat_array[17]}
             nice=${stat_array[18]}
 
